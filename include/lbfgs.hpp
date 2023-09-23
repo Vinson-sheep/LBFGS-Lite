@@ -443,8 +443,8 @@ namespace lbfgs
         double step, step_min, step_max, fx, ys, yy;
         double gnorm_inf, xnorm_inf, beta, rate, cau;
 
-        const int n = x.size();
-        const int m = param.mem_size;
+        const int n = x.size(); // 优化变量x的维度
+        const int m = param.mem_size;   // 缓冲池维度
 
         /* Check the input parameters for errors. */
         if (n <= 0)
@@ -495,11 +495,11 @@ namespace lbfgs
         }
 
         /* Prepare intermediate variables. */
-        Eigen::VectorXd xp(n);
-        Eigen::VectorXd g(n);
-        Eigen::VectorXd gp(n);
-        Eigen::VectorXd d(n);
-        Eigen::VectorXd pf(std::max(1, param.past));
+        Eigen::VectorXd xp(n);  // x past
+        Eigen::VectorXd g(n);   // 当前梯度
+        Eigen::VectorXd gp(n);  // g past
+        Eigen::VectorXd d(n);   // 搜索方向
+        Eigen::VectorXd pf(std::max(1, param.past));   // pass f(x)
 
         /* Initialize the limited memory. */
         Eigen::VectorXd lm_alpha = Eigen::VectorXd::Zero(m);
@@ -529,8 +529,8 @@ namespace lbfgs
         /*
         Make sure that the initial variables are not a stationary point.
         */
-        gnorm_inf = g.cwiseAbs().maxCoeff();
-        xnorm_inf = x.cwiseAbs().maxCoeff();
+        gnorm_inf = g.cwiseAbs().maxCoeff();    // 无穷范数
+        xnorm_inf = x.cwiseAbs().maxCoeff();    
 
         if (gnorm_inf / std::max(1.0, xnorm_inf) <= param.g_epsilon)
         {
@@ -567,7 +567,7 @@ namespace lbfgs
                 /* Search for an optimal step. */
                 ls = line_search_lewisoverton(x, fx, g, step, d, xp, gp, step_min, step_max, cd, param);
 
-                if (ls < 0)
+                if (ls < 0) // 搜索失败，退出程序
                 {
                     /* Revert to the previous point. */
                     x = xp;
@@ -577,7 +577,7 @@ namespace lbfgs
                 }
 
                 /* Report the progress. */
-                if (cd.proc_progress)
+                if (cd.proc_progress)   // 搜索成功，回调函数
                 {
                     if (cd.proc_progress(cd.instance, x, g, fx, step, k, ls))
                     {
@@ -605,11 +605,12 @@ namespace lbfgs
                 The criterion is given by the following formula:
                 |f(past_x) - f(x)| / max(1, |f(x)|) < \delta.
                 */
-                if (0 < param.past)
+                if (0 < param.past) // 检查cost
                 {
                     /* We don't test the stopping criterion while k < past. */
                     if (param.past <= k)
                     {
+                        // 取最后一次记录的cost进行对比
                         /* The stopping criterion. */
                         rate = std::fabs(pf(k % param.past) - fx) / std::max(1.0, std::fabs(fx));
 
@@ -624,7 +625,7 @@ namespace lbfgs
                     pf(k % param.past) = fx;
                 }
 
-                if (param.max_iterations != 0 && param.max_iterations <= k)
+                if (param.max_iterations != 0 && param.max_iterations <= k) // 检查迭代次数
                 {
                     /* Maximum number of iterations. */
                     ret = LBFGSERR_MAXIMUMITERATION;
@@ -669,7 +670,7 @@ namespace lbfgs
                 */
                 cau = lm_s.col(end).squaredNorm() * gp.norm() * param.cautious_factor;
 
-                if (ys > cau)
+                if (ys > cau)   // 否则不进行更新
                 {
                     /*
                     Recursive formula to compute dir = -(H \cdot g).
